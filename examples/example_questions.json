@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "text": "How do I reset my password?",
+      "category": "account",
+      "priority": 1,
+      "expected_tone": "helpful"
+    },
+    {
+      "text": "What are your business hours?",
+      "category": "general",
+      "priority": 2,
+      "expected_tone": "informative"
+    },
+    {
+      "text": "Can I get a refund for my purchase?",
+      "category": "billing",
+      "priority": 1,
+      "expected_tone": "empathetic"
+    },
+    {
+      "text": "How do I upgrade my subscription?",
+      "category": "account",
+      "priority": 2,
+      "expected_tone": "encouraging"
+    },
+    {
+      "text": "Is my data secure?",
+      "category": "security",
+      "priority": 1,
+      "expected_tone": "reassuring"
+    },
+    {
+      "text": "What features are included in the premium plan?",
+      "category": "product",
+      "priority": 2,
+      "expected_tone": "enthusiastic"
+    },
+    {
+      "text": "I'm having trouble logging in. Can you help?",
+      "category": "technical",
+      "priority": 1,
+      "expected_tone": "patient"
+    },
+    {
+      "text": "Do you offer discounts for students?",
+      "category": "billing",
+      "priority": 3,
+      "expected_tone": "helpful"
+    },
+    {
+      "text": "How can I cancel my subscription?",
+      "category": "account",
+      "priority": 1,
+      "expected_tone": "neutral"
+    },
+    {
+      "text": "What integrations do you support?",
+      "category": "product",
+      "priority": 2,
+      "expected_tone": "informative"
+    }
+  ]
+}

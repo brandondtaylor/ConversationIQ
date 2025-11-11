@@ -1,0 +1,11 @@
+text,category,priority,expected_tone
+How do I reset my password?,account,1,helpful
+What are your business hours?,general,2,informative
+Can I get a refund for my purchase?,billing,1,empathetic
+How do I upgrade my subscription?,account,2,encouraging
+Is my data secure?,security,1,reassuring
+What features are included in the premium plan?,product,2,enthusiastic
+I'm having trouble logging in. Can you help?,technical,1,patient
+Do you offer discounts for students?,billing,3,helpful
+How can I cancel my subscription?,account,1,neutral
+What integrations do you support?,product,2,informative

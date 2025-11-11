@@ -78,7 +78,7 @@ class QuestionModel(Base):
     category = Column(String, nullable=True)
     priority = Column(Integer, nullable=False, default=1)
     expected_tone = Column(String, nullable=True)
-    metadata = Column(JSONEncodedDict, nullable=False, default=dict)
+    meta_data = Column(JSONEncodedDict, nullable=False, default=dict)
 
     def __repr__(self):
         return f"<Question(id={self.id}, text={self.text[:50]})>"

@@ -132,7 +132,7 @@ class QuestionLoader:
                             metadata[col] = str(row[col])
 
                 if metadata:
-                    q_data['metadata'] = metadata
+                    q_data['meta_data'] = metadata
 
                 question = QuestionCreate(**q_data)
                 questions.append(question)
@@ -277,7 +277,7 @@ class QuestionExporter:
                 'expected_tone': q.expected_tone or ''
             }
             # Add metadata fields
-            for key, value in q.metadata.items():
+            for key, value in q.meta_data.items():
                 row[key] = value
 
             rows.append(row)

@@ -66,7 +66,7 @@ class TestConfigManager:
                 category=question_data.category,
                 priority=question_data.priority,
                 expected_tone=question_data.expected_tone,
-                metadata=question_data.metadata
+                meta_data=question_data.meta_data
             )
             self.session.add(db_question)
 
@@ -174,7 +174,7 @@ class TestConfigManager:
                     category=question_data.category,
                     priority=question_data.priority,
                     expected_tone=question_data.expected_tone,
-                    metadata=question_data.metadata
+                    meta_data=question_data.meta_data
                 )
                 self.session.add(db_question)
 
@@ -249,7 +249,7 @@ class TestConfigManager:
                 category=question_data.category,
                 priority=question_data.priority,
                 expected_tone=question_data.expected_tone,
-                metadata=question_data.metadata
+                meta_data=question_data.meta_data
             )
             self.session.add(db_question)
 

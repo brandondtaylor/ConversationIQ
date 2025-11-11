@@ -79,7 +79,7 @@ class QuestionBase(BaseModel):
     category: Optional[str] = None
     priority: int = Field(default=1, ge=1, le=10)
     expected_tone: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    meta_data: Dict[str, Any] = Field(default_factory=dict)
 
 
 class QuestionCreate(QuestionBase):

@@ -4,6 +4,11 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
 # TinyTroupe - Microsoft's AI persona simulation
+# NOTE: PyPI version is just a placeholder!
+# For full functionality, install from GitHub:
+#   pip uninstall tinytroupe -y
+#   pip install git+https://github.com/microsoft/tinytroupe.git
+# System will work with placeholder (uses rule-based evaluation as fallback)
 tinytroupe>=0.1.0
 
 # HTTP Client for Chat API calls

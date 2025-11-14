@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
+import { analyticsAPI } from '../api/client'
 import { Users, MessageCircle, TrendingUp, Award } from 'lucide-react'
 
 function FocusGroupInsights() {
@@ -9,7 +9,7 @@ function FocusGroupInsights() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['focus-group-insights', evaluationId],
     queryFn: async () => {
-      const response = await axios.get(`http://localhost:8000/api/analytics/focus-group-insights/${evaluationId}`)
+      const response = await analyticsAPI.getFocusGroupInsights(evaluationId)
       return response.data
     }
   })

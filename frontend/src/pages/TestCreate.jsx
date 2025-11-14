@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { testsAPI, agentsAPI, apiConfigsAPI, questionsAPI } from '../api/client'
 import { useNavigate } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { Upload, Edit3, FileText } from 'lucide-react'
+import QuestionEditor from '../components/QuestionEditor'
+import QuestionPreview from '../components/QuestionPreview'
 
 function TestCreate() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
+  const [questionInputMode, setQuestionInputMode] = useState('upload') // 'upload' or 'editor'
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -236,26 +239,75 @@ function TestCreate() {
             </div>
           )}
 
-          {/* Step 4: Upload Questions */}
+          {/* Step 4: Questions */}
           {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold mb-4">Upload Questions</h2>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <label className="btn btn-primary cursor-pointer">
-                  <input
-                    type="file"
-                    accept=".json,.csv,.txt"
-                    onChange={handleFileUpload}
-                    className="hidden"
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Add Questions</h2>
+
+                {/* Mode Toggle */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setQuestionInputMode('upload')}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 transition-colors ${
+                      questionInputMode === 'upload'
+                        ? 'border-primary-600 bg-primary-50 text-primary-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <Upload className="w-5 h-5" />
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuestionInputMode('editor')}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 transition-colors ${
+                      questionInputMode === 'editor'
+                        ? 'border-primary-600 bg-primary-50 text-primary-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <Edit3 className="w-5 h-5" />
+                    Visual Editor
+                  </button>
+                </div>
+
+                {/* Upload Mode */}
+                {questionInputMode === 'upload' && (
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <label className="btn btn-primary cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".json,.csv,.txt"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        {uploadMutation.isPending ? 'Uploading...' : 'Upload Questions File'}
+                      </label>
+                      <p className="text-sm text-gray-500 mt-2">JSON, CSV, or TXT format</p>
+                    </div>
+                    {formData.questions.length > 0 && (
+                      <QuestionPreview questions={formData.questions} />
+                    )}
+                  </div>
+                )}
+
+                {/* Editor Mode */}
+                {questionInputMode === 'editor' && (
+                  <QuestionEditor
+                    questions={formData.questions}
+                    onChange={(questions) => setFormData({ ...formData, questions })}
                   />
-                  {uploadMutation.isPending ? 'Uploading...' : 'Upload Questions File'}
-                </label>
-                <p className="text-sm text-gray-500 mt-2">JSON, CSV, or TXT format</p>
+                )}
               </div>
+
+              {/* Summary */}
               {formData.questions.length > 0 && (
                 <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="font-medium text-green-700">✓ {formData.questions.length} questions loaded</p>
+                  <p className="font-medium text-green-700">✓ {formData.questions.length} question{formData.questions.length !== 1 ? 's' : ''} ready</p>
                 </div>
               )}
             </div>

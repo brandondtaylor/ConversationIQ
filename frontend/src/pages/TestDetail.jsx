@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { testsAPI } from '../api/client'
-import { Play, BarChart3 } from 'lucide-react'
+import { testsAPI, analyticsAPI } from '../api/client'
+import { Play, BarChart3, Activity, Users } from 'lucide-react'
 
 function TestDetail() {
   const { id } = useParams()
@@ -21,6 +21,19 @@ function TestDetail() {
       return response.data
     },
   })
+
+  // Fetch evaluations to check for focus group insights
+  const { data: evaluations } = useQuery({
+    queryKey: ['evaluations', id],
+    queryFn: async () => {
+      const response = await analyticsAPI.getTestEvaluations(id)
+      return response.data
+    },
+    enabled: !!id && test?.status === 'completed'
+  })
+
+  // Find focus group evaluations
+  const focusGroupEvaluations = evaluations?.filter(eval => eval.agent_id === 'focus_group') || []
 
   if (isLoading) return <div>Loading test details...</div>
   if (!test) return <div>Test not found</div>
@@ -47,15 +60,45 @@ function TestDetail() {
         </div>
       </div>
 
-      {test.status === 'completed' && (
-        <Link
-          to={`/tests/${id}/results`}
-          className="btn btn-primary flex items-center gap-2 w-fit mb-8"
-        >
-          <BarChart3 className="w-4 h-4" />
-          View Results
-        </Link>
-      )}
+      {/* Navigation Buttons */}
+      <div className="mb-8 flex flex-wrap gap-3">
+        {test.status === 'running' && (
+          <Link
+            to={`/tests/${id}/monitor`}
+            className="btn btn-primary flex items-center gap-2 animate-pulse"
+          >
+            <Activity className="w-4 h-4" />
+            Monitor Test
+          </Link>
+        )}
+
+        {test.status === 'completed' && (
+          <>
+            <Link
+              to={`/tests/${id}/results`}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              View Results
+            </Link>
+
+            {focusGroupEvaluations.length > 0 && (
+              <>
+                {focusGroupEvaluations.map((evaluation, index) => (
+                  <Link
+                    key={evaluation.id}
+                    to={`/focus-group-insights/${evaluation.id}`}
+                    className="btn btn-secondary flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    Focus Group Insights {focusGroupEvaluations.length > 1 ? `#${index + 1}` : ''}
+                  </Link>
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="card mb-8">
         <h2 className="text-xl font-semibold mb-4">Task Context</h2>

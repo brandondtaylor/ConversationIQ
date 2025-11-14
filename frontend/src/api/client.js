@@ -74,4 +74,31 @@ export const dashboardAPI = {
   getStats: () => apiClient.get('/dashboard'),
 };
 
+// Analytics API
+export const analyticsAPI = {
+  // Focus Group Insights
+  getFocusGroupInsights: (evaluationId) =>
+    apiClient.get(`/analytics/focus-group-insights/${evaluationId}`),
+
+  // Trend Analysis
+  getTrends: (testId, params) =>
+    apiClient.get(`/analytics/trends/${testId}`, { params }),
+
+  // Agent Performance
+  getAgentPerformance: (testId, agentId) =>
+    apiClient.get(`/analytics/agent-performance/${testId}/${agentId}`),
+
+  // Question Analysis
+  getQuestionAnalysis: (testId, questionId) =>
+    apiClient.get(`/analytics/question-analysis/${testId}/${questionId}`),
+
+  // Comparative Analysis
+  getComparativeAnalysis: (testId, params) =>
+    apiClient.get(`/analytics/comparative/${testId}`, { params }),
+
+  // Test Evaluations (for checking focus group data)
+  getTestEvaluations: (testId) =>
+    apiClient.get(`/results/${testId}/evaluations`),
+};
+
 export default apiClient;

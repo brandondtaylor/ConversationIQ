@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { testsAPI } from '../api/client'
-import { Plus, Play, Trash2, Eye } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Plus, Play, Trash2, Eye, Activity } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 function Tests() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: tests, isLoading } = useQuery({
     queryKey: ['tests'],
@@ -23,8 +24,10 @@ function Tests() {
 
   const runMutation = useMutation({
     mutationFn: (id) => testsAPI.run(id),
-    onSuccess: () => {
+    onSuccess: (_, testId) => {
       queryClient.invalidateQueries(['tests'])
+      // Navigate to monitor page after starting test
+      navigate(`/tests/${testId}/monitor`)
     },
   })
 
@@ -68,6 +71,15 @@ function Tests() {
                 </div>
               </div>
               <div className="flex gap-2">
+                {test.status === 'running' && (
+                  <Link
+                    to={`/tests/${test.id}/monitor`}
+                    className="btn btn-primary text-sm flex items-center gap-2 animate-pulse"
+                  >
+                    <Activity className="w-4 h-4" />
+                    Monitor
+                  </Link>
+                )}
                 {test.status === 'completed' && (
                   <Link
                     to={`/tests/${test.id}/results`}
@@ -88,7 +100,7 @@ function Tests() {
                     className="btn btn-primary text-sm flex items-center gap-2"
                   >
                     <Play className="w-4 h-4" />
-                    Run
+                    {runMutation.isPending ? 'Starting...' : 'Run'}
                   </button>
                 )}
                 <Link to={`/tests/${test.id}`} className="btn btn-secondary text-sm">

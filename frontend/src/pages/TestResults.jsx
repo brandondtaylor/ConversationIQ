@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { resultsAPI } from '../api/client'
-import { Download } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import { resultsAPI, analyticsAPI } from '../api/client'
+import { Download, Users } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import TrendChart from '../components/TrendChart'
 
@@ -15,6 +15,19 @@ function TestResults() {
       return response.data
     },
   })
+
+  // Fetch evaluations to find focus group evaluations
+  const { data: evaluations } = useQuery({
+    queryKey: ['evaluations', id],
+    queryFn: async () => {
+      const response = await analyticsAPI.getTestEvaluations(id)
+      return response.data
+    },
+    enabled: !!id
+  })
+
+  // Find focus group evaluations
+  const focusGroupEvaluations = evaluations?.filter(eval => eval.agent_id === 'focus_group') || []
 
   const handleExport = async (format) => {
     try {
@@ -83,6 +96,37 @@ function TestResults() {
           <p className="text-3xl font-bold mt-1">{overall.rating_stats?.average?.toFixed(1) || 'N/A'}</p>
         </div>
       </div>
+
+      {/* Focus Group Insights */}
+      {focusGroupEvaluations.length > 0 && (
+        <div className="card mb-8 bg-purple-50 border-purple-200">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-purple-900">Focus Group Evaluations Available</h3>
+                <p className="text-sm text-purple-700 mt-1">
+                  {focusGroupEvaluations.length} focus group evaluation{focusGroupEvaluations.length !== 1 ? 's' : ''} with detailed discussion insights
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {focusGroupEvaluations.map((evaluation, index) => (
+                <Link
+                  key={evaluation.id}
+                  to={`/focus-group-insights/${evaluation.id}`}
+                  className="btn btn-primary text-sm flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  View Insights {focusGroupEvaluations.length > 1 ? `#${index + 1}` : ''}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rating Chart */}
       <div className="card mb-8">

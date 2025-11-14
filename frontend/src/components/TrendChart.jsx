@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import axios from 'axios'
+import { analyticsAPI } from '../api/client'
 
 function TrendChart({ testId, timeRangeDays = 7 }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['trend', testId, timeRangeDays],
     queryFn: async () => {
-      const response = await axios.get(`http://localhost:8000/api/analytics/trend/${testId}`, {
-        params: { time_range_days: timeRangeDays }
+      const response = await analyticsAPI.getTrends(testId, {
+        time_range_days: timeRangeDays
       })
       return response.data
     },

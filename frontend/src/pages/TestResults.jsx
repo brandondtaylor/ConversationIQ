@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { resultsAPI } from '../api/client'
 import { Download } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import TrendChart from '../components/TrendChart'
 
 function TestResults() {
   const { id } = useParams()
@@ -131,6 +132,12 @@ function TestResults() {
             <p className="text-gray-500">No concerns yet</p>
           )}
         </div>
+      </div>
+
+      {/* Trend Analysis */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4">Trend Analysis</h2>
+        <TrendChart testId={id} timeRangeDays={7} />
       </div>
 
       {/* Top Suggestions */}

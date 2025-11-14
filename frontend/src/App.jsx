@@ -8,6 +8,8 @@ import Tests from './pages/Tests'
 import TestCreate from './pages/TestCreate'
 import TestDetail from './pages/TestDetail'
 import TestResults from './pages/TestResults'
+import TestMonitor from './pages/TestMonitor'
+import FocusGroupInsights from './pages/FocusGroupInsights'
 
 function App() {
   return (
@@ -20,7 +22,9 @@ function App() {
         <Route path="/tests" element={<Tests />} />
         <Route path="/tests/create" element={<TestCreate />} />
         <Route path="/tests/:id" element={<TestDetail />} />
+        <Route path="/tests/:testId/monitor" element={<TestMonitor />} />
         <Route path="/tests/:id/results" element={<TestResults />} />
+        <Route path="/focus-group-insights/:evaluationId" element={<FocusGroupInsights />} />
       </Routes>
     </Layout>
   )

@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional, Callable
 import logging
 from datetime import datetime
 import time
+import asyncio
 
 from sqlalchemy.orm import Session
 
@@ -70,10 +71,22 @@ class TestExecutor:
         if not test_config:
             raise TestExecutionError(f"Test configuration not found: {test_id}")
 
-        self._log_progress(progress_callback, f"Starting test: {test_config.name}")
+        self._log_progress(progress_callback, f"Starting test: {test_config.name}", test_id, 0)
 
         # Update status to running
         self.test_config_manager.update_status(test_id, TestStatus.RUNNING)
+
+        # Send WebSocket status update
+        try:
+            from backend.api.websocket_manager import ws_manager
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(ws_manager.broadcast_status(test_id, "running"))
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket status: {e}")
 
         try:
             # Load API client
@@ -88,14 +101,18 @@ class TestExecutor:
 
             self._log_progress(
                 progress_callback,
-                f"Loaded {len(agents)} agents for evaluation"
+                f"Loaded {len(agents)} agents for evaluation",
+                test_id,
+                5
             )
 
             # Determine evaluation mode
             evaluation_mode = test_config.evaluation_mode
             self._log_progress(
                 progress_callback,
-                f"Using evaluation mode: {evaluation_mode.value}"
+                f"Using evaluation mode: {evaluation_mode.value}",
+                test_id,
+                10
             )
 
             # Load questions
@@ -105,7 +122,9 @@ class TestExecutor:
 
             self._log_progress(
                 progress_callback,
-                f"Processing {len(questions)} questions"
+                f"Processing {len(questions)} questions",
+                test_id,
+                15
             )
 
             # Create task context
@@ -114,9 +133,14 @@ class TestExecutor:
             # Execute test for each question
             total_evaluations = 0
             for idx, question in enumerate(questions):
+                # Calculate progress (20% to 90% for questions)
+                question_progress = 20 + (70 * (idx / len(questions)))
+
                 self._log_progress(
                     progress_callback,
-                    f"Question {idx + 1}/{len(questions)}: {question.text[:50]}..."
+                    f"Question {idx + 1}/{len(questions)}: {question.text[:50]}...",
+                    test_id,
+                    question_progress
                 )
 
                 try:
@@ -180,8 +204,22 @@ class TestExecutor:
 
             self._log_progress(
                 progress_callback,
-                f"Test completed! {total_evaluations} evaluations generated."
+                f"Test completed! {total_evaluations} evaluations generated.",
+                test_id,
+                100
             )
+
+            # Send WebSocket status update
+            try:
+                from backend.api.websocket_manager import ws_manager
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                loop.run_until_complete(ws_manager.broadcast_status(test_id, "completed"))
+            except Exception as e:
+                logger.warning(f"Failed to send WebSocket completion status: {e}")
 
             return {
                 "test_id": test_id,
@@ -195,6 +233,20 @@ class TestExecutor:
         except Exception as e:
             logger.error(f"Test execution failed: {e}")
             self.test_config_manager.update_status(test_id, TestStatus.FAILED)
+
+            # Send WebSocket error notification
+            try:
+                from backend.api.websocket_manager import ws_manager
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                loop.run_until_complete(ws_manager.broadcast_error(test_id, str(e)))
+                loop.run_until_complete(ws_manager.broadcast_status(test_id, "failed"))
+            except Exception as ws_error:
+                logger.warning(f"Failed to send WebSocket error notification: {ws_error}")
+
             raise TestExecutionError(f"Test execution failed: {e}") from e
 
     def _run_single_agent_evaluation(
@@ -459,7 +511,7 @@ class TestExecutor:
         self.session.add(db_evaluation)
         self.session.commit()
 
-    async def _send_websocket_update(self, test_id: str, message: str, progress_percentage: Optional[float] = None):
+    def _send_websocket_update(self, test_id: str, message: str, progress_percentage: Optional[float] = None):
         """
         Send WebSocket progress update.
 
@@ -471,25 +523,41 @@ class TestExecutor:
         try:
             # Import here to avoid circular dependency
             from backend.api.websocket_manager import ws_manager
-            await ws_manager.broadcast_progress(test_id, message, progress_percentage)
+
+            # Run async function in sync context
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            loop.run_until_complete(ws_manager.broadcast_progress(test_id, message, progress_percentage))
         except Exception as e:
             logger.warning(f"Failed to send WebSocket update: {e}")
 
     def _log_progress(
         self,
         callback: Optional[Callable[[str], None]],
-        message: str
+        message: str,
+        test_id: Optional[str] = None,
+        progress_percentage: Optional[float] = None
     ):
         """
-        Log progress message.
+        Log progress message and send WebSocket update.
 
         Args:
             callback: Progress callback
             message: Progress message
+            test_id: Test ID for WebSocket updates
+            progress_percentage: Optional progress percentage
         """
         logger.info(message)
         if callback:
             callback(message)
+
+        # Send WebSocket update if test_id provided
+        if test_id:
+            self._send_websocket_update(test_id, message, progress_percentage)
 
     def get_test_evaluations(self, test_id: str) -> List[Evaluation]:
         """

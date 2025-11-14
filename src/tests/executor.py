@@ -8,11 +8,12 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from ..storage.database import EvaluationModel, get_db_manager
-from ..storage.schemas import Evaluation, EvaluationCreate, TestStatus, Question
+from ..storage.schemas import Evaluation, EvaluationCreate, TestStatus, Question, EvaluationMode
 from ..api.config import APIConfigManager
 from ..api.client import ChatAPIClient
 from ..agents.manager import AgentManager
 from ..agents.personas import TinyTroupePersona, TINYTROUPE_AVAILABLE
+from ..agents.focus_group import FocusGroupEvaluator
 from .config import TestConfigManager
 from .context import TaskContext
 
@@ -89,20 +90,12 @@ class TestExecutor:
                 f"Loaded {len(agents)} agents for evaluation"
             )
 
-            # Create personas
-            personas = []
-            for agent in agents:
-                if TINYTROUPE_AVAILABLE:
-                    try:
-                        persona = TinyTroupePersona(agent)
-                        personas.append((agent, persona))
-                    except Exception as e:
-                        logger.warning(f"Failed to create persona for {agent.name}: {e}")
-                        # Use simple evaluation fallback
-                        personas.append((agent, None))
-                else:
-                    # Use simple evaluation fallback
-                    personas.append((agent, None))
+            # Determine evaluation mode
+            evaluation_mode = test_config.evaluation_mode
+            self._log_progress(
+                progress_callback,
+                f"Using evaluation mode: {evaluation_mode.value}"
+            )
 
             # Load questions
             questions = self.test_config_manager.get_questions(test_id)
@@ -133,28 +126,43 @@ class TestExecutor:
                     )
                     response_text = api_client.extract_response_text(response)
 
-                    # Have each agent evaluate
-                    for agent, persona in personas:
-                        try:
-                            evaluation = self._evaluate_response(
-                                test_id=test_id,
-                                question=question,
-                                response_text=response_text,
-                                agent=agent,
-                                persona=persona,
-                                task_context=task_context
-                            )
+                    # Evaluate based on selected mode
+                    if evaluation_mode == EvaluationMode.SINGLE_AGENT:
+                        # Single-agent evaluation (original behavior)
+                        total_evaluations += self._run_single_agent_evaluation(
+                            test_id=test_id,
+                            question=question,
+                            response_text=response_text,
+                            agents=agents,
+                            task_context=task_context
+                        )
 
-                            # Store evaluation
-                            self._store_evaluation(evaluation)
-                            total_evaluations += 1
+                    elif evaluation_mode == EvaluationMode.FOCUS_GROUP:
+                        # Focus group evaluation
+                        total_evaluations += self._run_focus_group_evaluation(
+                            test_id=test_id,
+                            question=question,
+                            response_text=response_text,
+                            agents=agents,
+                            task_context=task_context
+                        )
 
-                        except Exception as e:
-                            logger.error(
-                                f"Evaluation failed for agent {agent.name}, "
-                                f"question {question.id}: {e}"
-                            )
-                            continue
+                    elif evaluation_mode == EvaluationMode.BOTH:
+                        # Run both single-agent and focus group
+                        total_evaluations += self._run_single_agent_evaluation(
+                            test_id=test_id,
+                            question=question,
+                            response_text=response_text,
+                            agents=agents,
+                            task_context=task_context
+                        )
+                        total_evaluations += self._run_focus_group_evaluation(
+                            test_id=test_id,
+                            question=question,
+                            response_text=response_text,
+                            agents=agents,
+                            task_context=task_context
+                        )
 
                 except Exception as e:
                     logger.error(f"Failed to process question {question.id}: {e}")
@@ -181,6 +189,121 @@ class TestExecutor:
             logger.error(f"Test execution failed: {e}")
             self.test_config_manager.update_status(test_id, TestStatus.FAILED)
             raise TestExecutionError(f"Test execution failed: {e}") from e
+
+    def _run_single_agent_evaluation(
+        self,
+        test_id: str,
+        question: Question,
+        response_text: str,
+        agents: List[Any],
+        task_context: TaskContext
+    ) -> int:
+        """
+        Run single-agent evaluation mode (each agent evaluates independently).
+
+        Args:
+            test_id: Test ID
+            question: Question object
+            response_text: API response text
+            agents: List of agents
+            task_context: Task context
+
+        Returns:
+            Number of evaluations created
+        """
+        evaluations_count = 0
+
+        # Create personas for each agent
+        personas = []
+        for agent in agents:
+            if TINYTROUPE_AVAILABLE:
+                try:
+                    persona = TinyTroupePersona(agent)
+                    personas.append((agent, persona))
+                except Exception as e:
+                    logger.warning(f"Failed to create persona for {agent.name}: {e}")
+                    personas.append((agent, None))
+            else:
+                personas.append((agent, None))
+
+        # Have each agent evaluate independently
+        for agent, persona in personas:
+            try:
+                evaluation = self._evaluate_response(
+                    test_id=test_id,
+                    question=question,
+                    response_text=response_text,
+                    agent=agent,
+                    persona=persona,
+                    task_context=task_context
+                )
+
+                self._store_evaluation(evaluation)
+                evaluations_count += 1
+
+            except Exception as e:
+                logger.error(
+                    f"Single-agent evaluation failed for {agent.name}, "
+                    f"question {question.id}: {e}"
+                )
+                continue
+
+        return evaluations_count
+
+    def _run_focus_group_evaluation(
+        self,
+        test_id: str,
+        question: Question,
+        response_text: str,
+        agents: List[Any],
+        task_context: TaskContext
+    ) -> int:
+        """
+        Run focus group evaluation mode (agents discuss together).
+
+        Args:
+            test_id: Test ID
+            question: Question object
+            response_text: API response text
+            agents: List of agents
+            task_context: Task context
+
+        Returns:
+            Number of evaluations created (1 for focus group)
+        """
+        try:
+            # Create focus group evaluator
+            focus_group = FocusGroupEvaluator(agents)
+
+            # Run group discussion
+            group_evaluation = focus_group.evaluate_response(
+                question=question.text,
+                response=response_text,
+                context=task_context.to_text(),
+                num_rounds=2
+            )
+
+            # Create evaluation record for the focus group
+            # Use first agent's ID as representative, or create special "focus_group" ID
+            evaluation = EvaluationCreate(
+                test_id=test_id,
+                question_id=question.id,
+                agent_id="focus_group",  # Special identifier for focus group evaluations
+                api_response=response_text,
+                likes=group_evaluation.get("likes", []),
+                dislikes=group_evaluation.get("dislikes", []),
+                suggestions=group_evaluation.get("suggestions", []),
+                rating=group_evaluation.get("rating"),
+                agent_perspective=group_evaluation.get("agent_perspective", "Focus group consensus"),
+                raw_evaluation=group_evaluation.get("raw_evaluation", {})
+            )
+
+            self._store_evaluation(evaluation)
+            return 1
+
+        except Exception as e:
+            logger.error(f"Focus group evaluation failed for question {question.id}: {e}")
+            return 0
 
     def _evaluate_response(
         self,

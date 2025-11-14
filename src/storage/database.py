@@ -11,7 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.types import TypeDecorator, TEXT
 
-from .schemas import TestStatus
+from .schemas import TestStatus, EvaluationMode
 
 
 Base = declarative_base()
@@ -94,6 +94,7 @@ class TestConfigModel(Base):
     task_context = Column(Text, nullable=False)
     api_config_id = Column(String, nullable=False)
     agent_ids = Column(JSONEncodedDict, nullable=False, default=list)
+    evaluation_mode = Column(SQLEnum(EvaluationMode), nullable=False, default=EvaluationMode.SINGLE_AGENT)
     status = Column(SQLEnum(TestStatus), nullable=False, default=TestStatus.DRAFT)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

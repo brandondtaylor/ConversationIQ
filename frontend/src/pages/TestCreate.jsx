@@ -13,6 +13,7 @@ function TestCreate() {
     task_context: '',
     api_config_id: '',
     agent_ids: [],
+    evaluation_mode: 'single_agent',
     questions: [],
   })
 
@@ -152,31 +153,85 @@ function TestCreate() {
 
           {/* Step 3: Select Agents */}
           {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold mb-4">Select Agents</h2>
-              <p className="text-sm text-gray-600 mb-4">Choose agents who will evaluate the responses</p>
-              <div className="space-y-2">
-                {agents?.map((agent) => (
-                  <label key={agent.id} className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Select Agents</h2>
+                <p className="text-sm text-gray-600 mb-4">Choose agents who will evaluate the responses</p>
+                <div className="space-y-2">
+                  {agents?.map((agent) => (
+                    <label key={agent.id} className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.agent_ids.includes(agent.id)}
+                        onChange={() => toggleAgent(agent.id)}
+                        className="mt-1 mr-3"
+                      />
+                      <div>
+                        <p className="font-medium">{agent.name}</p>
+                        <p className="text-sm text-gray-600">{agent.description}</p>
+                        <div className="flex gap-1 mt-2">
+                          {agent.expertise_areas?.slice(0, 3).map((area, i) => (
+                            <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                              {area}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Evaluation Mode Selector */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-3">Evaluation Mode</h3>
+                <p className="text-sm text-gray-600 mb-4">Choose how agents will evaluate the responses</p>
+                <div className="space-y-3">
+                  <label className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                     <input
-                      type="checkbox"
-                      checked={formData.agent_ids.includes(agent.id)}
-                      onChange={() => toggleAgent(agent.id)}
+                      type="radio"
+                      name="evaluation_mode"
+                      value="single_agent"
+                      checked={formData.evaluation_mode === 'single_agent'}
+                      onChange={(e) => setFormData({ ...formData, evaluation_mode: e.target.value })}
                       className="mt-1 mr-3"
                     />
                     <div>
-                      <p className="font-medium">{agent.name}</p>
-                      <p className="text-sm text-gray-600">{agent.description}</p>
-                      <div className="flex gap-1 mt-2">
-                        {agent.expertise_areas?.slice(0, 3).map((area, i) => (
-                          <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                            {area}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="font-medium">Single-Agent Evaluation</p>
+                      <p className="text-sm text-gray-600">Each agent evaluates independently and provides individual feedback</p>
                     </div>
                   </label>
-                ))}
+
+                  <label className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="evaluation_mode"
+                      value="focus_group"
+                      checked={formData.evaluation_mode === 'focus_group'}
+                      onChange={(e) => setFormData({ ...formData, evaluation_mode: e.target.value })}
+                      className="mt-1 mr-3"
+                    />
+                    <div>
+                      <p className="font-medium">Focus Group Evaluation</p>
+                      <p className="text-sm text-gray-600">Agents discuss together as a focus group using TinyTroupe's collaborative environment</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="evaluation_mode"
+                      value="both"
+                      checked={formData.evaluation_mode === 'both'}
+                      onChange={(e) => setFormData({ ...formData, evaluation_mode: e.target.value })}
+                      className="mt-1 mr-3"
+                    />
+                    <div>
+                      <p className="font-medium">Both Single & Focus Group</p>
+                      <p className="text-sm text-gray-600">Run both evaluation modes - get individual agent feedback AND collaborative group insights</p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           )}

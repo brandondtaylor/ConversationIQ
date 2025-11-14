@@ -52,6 +52,7 @@ class TestConfigManager:
             task_context=config.task_context,
             api_config_id=config.api_config_id,
             agent_ids=config.agent_ids,
+            evaluation_mode=config.evaluation_mode,
             status=TestStatus.DRAFT
         )
 

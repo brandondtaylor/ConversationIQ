@@ -16,6 +16,13 @@ class TestStatus(str, Enum):
     FAILED = "failed"
 
 
+class EvaluationMode(str, Enum):
+    """Evaluation mode for agent feedback"""
+    SINGLE_AGENT = "single_agent"  # Each agent evaluates independently
+    FOCUS_GROUP = "focus_group"    # Agents discuss together using TinyWorld
+    BOTH = "both"                  # Run both single-agent and focus group
+
+
 class AgentBase(BaseModel):
     """Base schema for Agent"""
     name: str = Field(..., min_length=1, max_length=200)
@@ -102,6 +109,7 @@ class TestConfigBase(BaseModel):
     api_config_id: str
     agent_ids: List[str] = Field(default_factory=list)
     questions: List[QuestionCreate] = Field(default_factory=list)
+    evaluation_mode: EvaluationMode = Field(default=EvaluationMode.SINGLE_AGENT)
 
 
 class TestConfigCreate(TestConfigBase):
@@ -118,6 +126,7 @@ class TestConfigUpdate(BaseModel):
     agent_ids: Optional[List[str]] = None
     questions: Optional[List[QuestionCreate]] = None
     status: Optional[TestStatus] = None
+    evaluation_mode: Optional[EvaluationMode] = None
 
 
 class TestConfig(TestConfigBase):

@@ -2,6 +2,21 @@
 
 Get up and running with ConversationIQ in 5 minutes!
 
+## Choose Your Interface
+
+**🌐 Web UI (Recommended for Beginners)**
+```bash
+./start-backend.sh    # Terminal 1
+./start-frontend.sh   # Terminal 2
+# Visit http://localhost:5173
+```
+Then follow the intuitive web interface! See [WEB_UI_README.md](WEB_UI_README.md) for details.
+
+**💻 CLI (For Automation & Scripts)**
+Continue with the steps below for command-line usage.
+
+---
+
 ## Step 1: Installation (1 minute)
 
 ```bash

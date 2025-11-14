@@ -115,19 +115,42 @@ npm run dev
 - Create comprehensive tests (multi-step wizard)
 - Select API configuration
 - Choose multiple agents for evaluation
-- Upload questions (JSON, CSV, TXT)
-- View test details
-- Run tests
-- Monitor test status
+- Choose evaluation mode (Single-Agent, Focus Group, or Both)
+- Upload questions (JSON, CSV, TXT) **OR** use the visual question editor
+- View test details with context-aware navigation
+- Run tests with automatic navigation to monitor
+- Real-time test monitoring with live charts
+
+### 🎯 Real-Time Test Monitoring
+- Live activity logs with timestamps
+- Real-time rating trend chart (updates as evaluations complete)
+- Evaluations per agent bar chart
+- Progress bar with percentage
+- WebSocket connection status indicators
+- Automatic reconnection with exponential backoff (up to 10 attempts)
+- Manual reconnect button if connection fails
+- Connection health monitoring
+
+### 👥 Focus Group Insights
+- Detailed analysis of focus group discussions
+- Consensus points (agreements among agents)
+- Disagreement points (divergent opinions)
+- Most influential agents ranking
+- Key discussion themes
+- Participation balance metrics
+- Conversation flow visualization
 
 ### 📊 Results & Analytics
 - View detailed test results
-- Rating statistics with charts
+- Rating statistics with interactive charts
 - Common positive feedback
 - Common concerns/dislikes
 - Top improvement suggestions
+- Trend analysis over time
+- Response time tracking
 - Export results (JSON, CSV, Full Report)
 - Visualizations with Recharts
+- Direct access to Focus Group Insights (when available)
 
 ## API Endpoints
 
@@ -173,8 +196,15 @@ npm run dev
 ### Dashboard
 - `GET /api/dashboard` - Get dashboard statistics
 
+### Analytics
+- `GET /api/analytics/focus-group-insights/{evaluation_id}` - Get focus group discussion insights
+- `GET /api/analytics/trends/{test_id}` - Get trend analysis over time
+- `GET /api/analytics/agent-performance/{test_id}/{agent_id}` - Get agent performance metrics
+- `GET /api/analytics/question-analysis/{test_id}/{question_id}` - Get question-level analysis
+- `GET /api/analytics/comparative/{test_id}` - Get comparative analysis across agents
+
 ### WebSocket
-- `WS /ws/test/{test_id}` - Real-time test updates
+- `WS /ws/test/{test_id}` - Real-time test updates with evaluation progress
 
 ## Project Structure
 
@@ -196,17 +226,23 @@ ConversationIQ/
 ├── frontend/                   # React Frontend
 │   ├── src/
 │   │   ├── api/               # API client (Axios)
+│   │   │   └── client.js      # Centralized API wrapper (including analyticsAPI)
 │   │   ├── components/        # React components
-│   │   │   └── Layout.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   ├── QuestionEditor.jsx     # Visual question editor
+│   │   │   ├── QuestionPreview.jsx    # Question preview
+│   │   │   └── TrendChart.jsx         # Trend analysis charts
 │   │   ├── pages/             # Page components
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Agents.jsx
 │   │   │   ├── AgentCreate.jsx
 │   │   │   ├── APIConfigs.jsx
-│   │   │   ├── Tests.jsx
-│   │   │   ├── TestCreate.jsx
-│   │   │   ├── TestDetail.jsx
-│   │   │   └── TestResults.jsx
+│   │   │   ├── Tests.jsx              # Test list with Monitor button
+│   │   │   ├── TestCreate.jsx         # Multi-step wizard with question editor
+│   │   │   ├── TestDetail.jsx         # Test details with navigation
+│   │   │   ├── TestMonitor.jsx        # Real-time monitoring with charts
+│   │   │   ├── TestResults.jsx        # Results with Focus Group button
+│   │   │   └── FocusGroupInsights.jsx # Focus group discussion analysis
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── index.css
@@ -220,6 +256,9 @@ ConversationIQ/
 │   ├── storage/
 │   ├── tests/
 │   └── ui/                    # CLI (still available)
+│
+├── scripts/                    # Utility scripts
+│   └── migrate_database.py    # Database migration script
 │
 ├── start-backend.sh           # Backend startup script (Linux/Mac)
 ├── start-frontend.sh          # Frontend startup script (Linux/Mac)
@@ -289,6 +328,31 @@ CORS is configured in `backend/api/main.py` to allow:
 - http://localhost:3000 (Create React App default)
 
 To add more origins, edit the `allow_origins` list in `main.py`.
+
+## Database Migration
+
+If you're upgrading from a previous version of ConversationIQ, run the migration script to update your database schema:
+
+```bash
+# From the project root
+python scripts/migrate_database.py
+```
+
+The migration script will:
+- Add missing columns (`response_time`, `evaluation_mode`)
+- Rename conflicting columns (`metadata` → `meta_data`)
+- Create any missing tables
+- Provide detailed logging of all operations
+
+**What gets migrated:**
+- `questions.metadata` → `questions.meta_data` (avoids SQLAlchemy reserved word)
+- Adds `evaluations.response_time` column (for response time tracking)
+- Adds `test_configs.evaluation_mode` column (for Single-Agent/Focus Group/Both modes)
+
+**Custom database URL:**
+```bash
+python scripts/migrate_database.py postgresql://user:pass@localhost/conversationiq
+```
 
 ## Troubleshooting
 

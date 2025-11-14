@@ -9,10 +9,15 @@ ConversationIQ allows you to evaluate chat API responses from multiple perspecti
 - 🤖 **Virtual Agent Management**: Create and manage diverse agent personas with unique backgrounds and perspectives
 - 🔌 **Chat API Integration**: Connect to any chat API endpoint for evaluation
 - 📊 **Multi-Agent Evaluation**: Get feedback from multiple personas on each response
-- 📁 **Flexible Question Loading**: Import questions from JSON, CSV, or text files
+- 🎯 **Three Evaluation Modes**: Single-Agent, Focus Group (with discussion), or Both
+- 👥 **Focus Group Analysis**: AI agents discuss responses in real-time with detailed insights
+- 📁 **Flexible Question Loading**: Import questions from JSON, CSV, or text files, or use the visual editor
 - 📈 **Comprehensive Reporting**: Aggregate feedback, identify patterns, export results
 - 🎭 **TinyTroupe Integration**: Leverage Microsoft's TinyTroupe for sophisticated persona simulation
 - 💻 **CLI Interface**: Easy-to-use command-line interface for all operations
+- 🌐 **Full-Stack Web UI**: Modern React interface with real-time monitoring and analytics
+- 📊 **Real-time Charts**: Live monitoring of test execution with interactive visualizations
+- 🔄 **WebSocket Support**: Real-time updates during test execution with automatic reconnection
 
 ## Installation
 
@@ -42,6 +47,17 @@ python conversationiq.py init
 This will create the database and necessary data directories.
 
 ## Quick Start
+
+**New to ConversationIQ?** Try the **Web UI** for a modern, intuitive experience!
+
+```bash
+# Start the Web UI (see WEB_UI_README.md for details)
+./start-backend.sh    # Terminal 1
+./start-frontend.sh   # Terminal 2
+# Then visit http://localhost:5173
+```
+
+**Prefer the CLI?** Continue with the steps below:
 
 ### 1. Create Virtual Agents
 
@@ -332,6 +348,25 @@ First question here
 Second question here
 
 Third question here
+```
+
+## Database Migration
+
+If you're upgrading from a previous version, run the migration script to update your database schema:
+
+```bash
+python scripts/migrate_database.py
+```
+
+The migration script handles:
+- Renaming `metadata` to `meta_data` column (avoids SQLAlchemy conflicts)
+- Adding `response_time` column to evaluations
+- Adding `evaluation_mode` column to test configs
+- Creating any missing tables
+
+For a custom database URL:
+```bash
+python scripts/migrate_database.py postgresql://user:pass@localhost/dbname
 ```
 
 ## Troubleshooting

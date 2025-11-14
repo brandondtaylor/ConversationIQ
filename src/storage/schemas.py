@@ -151,6 +151,7 @@ class EvaluationBase(BaseModel):
     rating: Optional[float] = Field(None, ge=0, le=10)
     agent_perspective: Optional[str] = None
     raw_evaluation: Dict[str, Any] = Field(default_factory=dict)
+    response_time: Optional[float] = Field(None, description="API response time in seconds")
 
 
 class EvaluationCreate(EvaluationBase):

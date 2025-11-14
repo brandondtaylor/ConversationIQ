@@ -118,7 +118,8 @@ class EvaluationModel(Base):
     rating = Column(Float, nullable=True)
     agent_perspective = Column(Text, nullable=True)
     raw_evaluation = Column(JSONEncodedDict, nullable=False, default=dict)
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    response_time = Column(Float, nullable=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     def __repr__(self):
         return f"<Evaluation(id={self.id}, test_id={self.test_id}, agent_id={self.agent_id})>"

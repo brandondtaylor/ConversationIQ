@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
 
-from .routes import agents, apis, tests, questions, results, dashboard, websocket
+from .routes import agents, apis, tests, questions, results, dashboard, websocket, analytics
 from src.storage.database import init_database
 
 # Configure logging
@@ -65,6 +65,7 @@ app.include_router(apis.router, prefix="/api/api-configs", tags=["API Configs"])
 app.include_router(tests.router, prefix="/api/tests", tags=["Tests"])
 app.include_router(questions.router, prefix="/api/questions", tags=["Questions"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
 
 # Global exception handler

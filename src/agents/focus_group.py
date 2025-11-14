@@ -175,6 +175,9 @@ class FocusGroupEvaluator:
                 logger.warning(f"Failed to extract evaluation from {tiny_person.name}: {e}")
                 continue
 
+        # Extract full conversation transcript
+        conversation_transcript = self._extract_conversation_transcript()
+
         # Calculate average rating
         avg_rating = sum(ratings) / len(ratings) if ratings else None
 
@@ -188,9 +191,57 @@ class FocusGroupEvaluator:
                 "method": "focus_group_tinytroupe",
                 "num_agents": len(self.tiny_persons),
                 "individual_perspectives": individual_perspectives,
+                "conversation_transcript": conversation_transcript,
                 "conversation_rounds": len(self.world.actions if hasattr(self.world, 'actions') else [])
             }
         }
+
+    def _extract_conversation_transcript(self) -> List[Dict[str, str]]:
+        """
+        Extract the full conversation transcript from the TinyWorld.
+
+        Returns:
+            List of conversation turns with speaker and message
+        """
+        transcript = []
+
+        try:
+            # Try to get actions from the world
+            if hasattr(self.world, 'actions') and self.world.actions:
+                for action in self.world.actions:
+                    if hasattr(action, 'agent') and hasattr(action, 'content'):
+                        transcript.append({
+                            "speaker": action.agent.name if hasattr(action.agent, 'name') else str(action.agent),
+                            "message": str(action.content),
+                            "type": "action"
+                        })
+                    else:
+                        transcript.append({
+                            "speaker": "system",
+                            "message": str(action),
+                            "type": "action"
+                        })
+
+            # Also get individual agent memories if available
+            for tiny_person in self.tiny_persons:
+                if hasattr(tiny_person, 'episodic_memory') and hasattr(tiny_person.episodic_memory, 'retrieve_all'):
+                    memories = tiny_person.episodic_memory.retrieve_all()
+                    for memory in memories[-5:]:  # Last 5 memories per agent
+                        transcript.append({
+                            "speaker": tiny_person.name,
+                            "message": str(memory),
+                            "type": "memory"
+                        })
+
+        except Exception as e:
+            logger.warning(f"Failed to extract conversation transcript: {e}")
+            transcript.append({
+                "speaker": "system",
+                "message": f"Failed to extract transcript: {e}",
+                "type": "error"
+            })
+
+        return transcript
 
     def _parse_agent_conversation(self, tiny_person: TinyPerson) -> Dict[str, Any]:
         """

@@ -4,6 +4,7 @@ Test execution engine - orchestrates the evaluation process.
 from typing import List, Dict, Any, Optional, Callable
 import logging
 from datetime import datetime
+import time
 
 from sqlalchemy.orm import Session
 
@@ -119,11 +120,13 @@ class TestExecutor:
                 )
 
                 try:
-                    # Send question to API
+                    # Send question to API and track response time
+                    start_time = time.time()
                     response = api_client.send_message(
                         question.text,
                         context=test_config.task_context
                     )
+                    response_time = time.time() - start_time
                     response_text = api_client.extract_response_text(response)
 
                     # Evaluate based on selected mode
@@ -133,6 +136,7 @@ class TestExecutor:
                             test_id=test_id,
                             question=question,
                             response_text=response_text,
+                            response_time=response_time,
                             agents=agents,
                             task_context=task_context
                         )
@@ -143,6 +147,7 @@ class TestExecutor:
                             test_id=test_id,
                             question=question,
                             response_text=response_text,
+                            response_time=response_time,
                             agents=agents,
                             task_context=task_context
                         )
@@ -153,6 +158,7 @@ class TestExecutor:
                             test_id=test_id,
                             question=question,
                             response_text=response_text,
+                            response_time=response_time,
                             agents=agents,
                             task_context=task_context
                         )
@@ -160,6 +166,7 @@ class TestExecutor:
                             test_id=test_id,
                             question=question,
                             response_text=response_text,
+                            response_time=response_time,
                             agents=agents,
                             task_context=task_context
                         )
@@ -195,6 +202,7 @@ class TestExecutor:
         test_id: str,
         question: Question,
         response_text: str,
+        response_time: float,
         agents: List[Any],
         task_context: TaskContext
     ) -> int:
@@ -205,6 +213,7 @@ class TestExecutor:
             test_id: Test ID
             question: Question object
             response_text: API response text
+            response_time: API response time in seconds
             agents: List of agents
             task_context: Task context
 
@@ -233,6 +242,7 @@ class TestExecutor:
                     test_id=test_id,
                     question=question,
                     response_text=response_text,
+                    response_time=response_time,
                     agent=agent,
                     persona=persona,
                     task_context=task_context
@@ -255,6 +265,7 @@ class TestExecutor:
         test_id: str,
         question: Question,
         response_text: str,
+        response_time: float,
         agents: List[Any],
         task_context: TaskContext
     ) -> int:
@@ -265,6 +276,7 @@ class TestExecutor:
             test_id: Test ID
             question: Question object
             response_text: API response text
+            response_time: API response time in seconds
             agents: List of agents
             task_context: Task context
 
@@ -295,7 +307,8 @@ class TestExecutor:
                 suggestions=group_evaluation.get("suggestions", []),
                 rating=group_evaluation.get("rating"),
                 agent_perspective=group_evaluation.get("agent_perspective", "Focus group consensus"),
-                raw_evaluation=group_evaluation.get("raw_evaluation", {})
+                raw_evaluation=group_evaluation.get("raw_evaluation", {}),
+                response_time=response_time
             )
 
             self._store_evaluation(evaluation)
@@ -310,6 +323,7 @@ class TestExecutor:
         test_id: str,
         question: Question,
         response_text: str,
+        response_time: float,
         agent: Any,
         persona: Optional[TinyTroupePersona],
         task_context: TaskContext
@@ -321,6 +335,7 @@ class TestExecutor:
             test_id: Test ID
             question: Question object
             response_text: API response text
+            response_time: API response time in seconds
             agent: Agent object
             persona: TinyTroupe persona (optional)
             task_context: Task context
@@ -354,7 +369,8 @@ class TestExecutor:
             suggestions=evaluation_data.get("suggestions", []),
             rating=evaluation_data.get("rating"),
             agent_perspective=evaluation_data.get("agent_perspective"),
-            raw_evaluation=evaluation_data.get("raw_evaluation", {})
+            raw_evaluation=evaluation_data.get("raw_evaluation", {}),
+            response_time=response_time
         )
 
         return evaluation
@@ -436,11 +452,28 @@ class TestExecutor:
             suggestions=evaluation.suggestions,
             rating=evaluation.rating,
             agent_perspective=evaluation.agent_perspective,
-            raw_evaluation=evaluation.raw_evaluation
+            raw_evaluation=evaluation.raw_evaluation,
+            response_time=evaluation.response_time
         )
 
         self.session.add(db_evaluation)
         self.session.commit()
+
+    async def _send_websocket_update(self, test_id: str, message: str, progress_percentage: Optional[float] = None):
+        """
+        Send WebSocket progress update.
+
+        Args:
+            test_id: Test ID
+            message: Progress message
+            progress_percentage: Optional progress percentage
+        """
+        try:
+            # Import here to avoid circular dependency
+            from backend.api.websocket_manager import ws_manager
+            await ws_manager.broadcast_progress(test_id, message, progress_percentage)
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket update: {e}")
 
     def _log_progress(
         self,

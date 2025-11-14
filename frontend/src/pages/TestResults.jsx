@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { resultsAPI, analyticsAPI } from '../api/client'
-import { Download, Users } from 'lucide-react'
+import { Download, Users, Star, Award, ThumbsUp } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import TrendChart from '../components/TrendChart'
 
@@ -28,6 +28,12 @@ function TestResults() {
 
   // Find focus group evaluations
   const focusGroupEvaluations = evaluations?.filter(eval => eval.agent_id === 'focus_group') || []
+
+  // Find ideal responses (top 3 highest rated evaluations)
+  const idealResponses = evaluations
+    ?.filter(eval => eval.rating && eval.rating >= 8) // Only ratings 8 or above
+    ?.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    ?.slice(0, 3) || []
 
   const handleExport = async (format) => {
     try {
@@ -141,6 +147,81 @@ function TestResults() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Ideal Response Examples */}
+      {idealResponses.length > 0 && (
+        <div className="card mb-8 bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Award className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-amber-900">Ideal Response Examples</h2>
+              <p className="text-sm text-amber-700">Top-rated responses that exemplify quality criteria</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {idealResponses.map((evaluation, index) => (
+              <div key={evaluation.id} className="bg-white rounded-lg p-5 border-2 border-amber-200 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-3 py-1 bg-amber-100 rounded-full">
+                      <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
+                      <span className="font-bold text-amber-900">{evaluation.rating?.toFixed(1)}</span>
+                      <span className="text-xs text-amber-700">/10</span>
+                    </div>
+                    <span className="text-sm text-gray-600">by {evaluation.agent_id}</span>
+                  </div>
+                  {index === 0 && (
+                    <span className="px-2 py-1 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold rounded-full">
+                      BEST EXAMPLE
+                    </span>
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-600 mb-1">Response:</p>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    {evaluation.api_response}
+                  </p>
+                </div>
+
+                {evaluation.likes && evaluation.likes.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-green-700 mb-2 flex items-center gap-1">
+                      <ThumbsUp className="w-4 h-4" />
+                      What made this response excellent:
+                    </p>
+                    <div className="space-y-1">
+                      {evaluation.likes.slice(0, 3).map((like, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="text-green-600 mt-1">•</span>
+                          <span className="text-sm text-gray-700">{like}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {evaluation.agent_perspective && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-600 italic">
+                      "{evaluation.agent_perspective}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {idealResponses.length === 0 && (
+            <p className="text-amber-700 text-center py-4">
+              No responses with rating 8+ found yet. Keep testing to discover ideal examples!
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Top Likes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

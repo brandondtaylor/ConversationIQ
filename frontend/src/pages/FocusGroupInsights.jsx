@@ -1,10 +1,12 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsAPI } from '../api/client'
-import { Users, MessageCircle, TrendingUp, Award } from 'lucide-react'
+import { Users, MessageCircle, TrendingUp, Award, Star, ArrowRight, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
 
 function FocusGroupInsights() {
   const { evaluationId } = useParams()
+  const [showFullTranscript, setShowFullTranscript] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['focus-group-insights', evaluationId],
@@ -228,25 +230,113 @@ function FocusGroupInsights() {
         </div>
       )}
 
-      {/* Conversation Transcript */}
+      {/* Discussion Flow Visualization */}
       {insights.discussion_flow && insights.discussion_flow.sequence && (
         <div className="card mt-6">
-          <h2 className="text-xl font-semibold mb-4">Conversation Flow</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Total turns: {insights.discussion_flow.total_turns}
-          </p>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {insights.discussion_flow.sequence.slice(0, 20).map((turn, index) => (
-              <div key={index} className="flex gap-3 p-2 hover:bg-gray-50 rounded">
-                <span className="text-xs text-gray-400 w-8">{index + 1}</span>
-                <span className="font-medium text-sm text-blue-600 w-32">{turn.speaker}</span>
-                <p className="text-sm text-gray-700 flex-1">{turn.message_preview}</p>
-              </div>
-            ))}
-            {insights.discussion_flow.sequence.length > 20 && (
-              <p className="text-sm text-gray-500 text-center py-2">
-                ... and {insights.discussion_flow.sequence.length - 20} more turns
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Conversation Flow</h2>
+              <p className="text-sm text-gray-600">
+                Total turns: {insights.discussion_flow.total_turns}
               </p>
+            </div>
+            <button
+              onClick={() => setShowFullTranscript(!showFullTranscript)}
+              className="btn btn-secondary flex items-center gap-2"
+            >
+              {showFullTranscript ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Show Full Transcript
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Visual Timeline */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Discussion Timeline</h3>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              {insights.discussion_flow.sequence.slice(0, Math.min(30, insights.discussion_flow.sequence.length)).map((turn, index) => (
+                <div key={index} className="flex items-center gap-1 flex-shrink-0">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium shadow-sm"
+                    style={{
+                      backgroundColor: `hsl(${(turn.speaker.charCodeAt(0) * 137.5) % 360}, 70%, 85%)`,
+                      color: `hsl(${(turn.speaker.charCodeAt(0) * 137.5) % 360}, 70%, 30%)`
+                    }}
+                    title={turn.speaker}
+                  >
+                    {turn.speaker.substring(0, 2).toUpperCase()}
+                  </div>
+                  {index < Math.min(29, insights.discussion_flow.sequence.length - 1) && (
+                    <ArrowRight className="w-3 h-3 text-gray-400" />
+                  )}
+                </div>
+              ))}
+              {insights.discussion_flow.sequence.length > 30 && (
+                <span className="text-sm text-gray-500 ml-2">+{insights.discussion_flow.sequence.length - 30} more</span>
+              )}
+            </div>
+          </div>
+
+          {/* Conversation Transcript */}
+          <div className={`space-y-2 ${!showFullTranscript ? 'max-h-96' : 'max-h-[600px]'} overflow-y-auto`}>
+            {(showFullTranscript
+              ? insights.discussion_flow.sequence
+              : insights.discussion_flow.sequence.slice(0, 20)
+            ).map((turn, index) => {
+              // Highlight key moments (consensus/disagreement points)
+              const isConsensus = turn.message_preview && insights.consensus_points?.some(
+                point => point.supporting_agents?.includes(turn.speaker)
+              )
+              const isDisagreement = turn.message_preview && insights.disagreement_points?.some(
+                point => point.low_raters?.includes(turn.speaker) || point.high_raters?.includes(turn.speaker)
+              )
+
+              return (
+                <div
+                  key={index}
+                  className={`flex gap-3 p-3 rounded-lg transition-colors ${
+                    isConsensus ? 'bg-green-50 border border-green-200' :
+                    isDisagreement ? 'bg-orange-50 border border-orange-200' :
+                    'hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">{index + 1}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm text-blue-600">{turn.speaker}</span>
+                      {isConsensus && (
+                        <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3" />
+                          Consensus
+                        </span>
+                      )}
+                      {isDisagreement && (
+                        <span className="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs rounded-full flex items-center gap-1">
+                          <Lightbulb className="w-3 h-3" />
+                          Key Point
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700">{turn.message_preview}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {!showFullTranscript && insights.discussion_flow.sequence.length > 20 && (
+              <button
+                onClick={() => setShowFullTranscript(true)}
+                className="w-full py-3 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                Show {insights.discussion_flow.sequence.length - 20} more turns
+              </button>
             )}
           </div>
         </div>
